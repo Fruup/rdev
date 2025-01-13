@@ -50,10 +50,9 @@ where
         set_key_hook(raw_callback)?;
         set_mouse_hook(raw_callback)?;
 
-        /**
-         * This is a blocking call. It will block the current thread until a message is received.
-         * I found that it's not necessary, so I removed it so the caller doesn't get blocked.
-         */
+        // The following is a blocking call. It will block the current thread until a message is received.
+        // I found that it's not necessary, so I removed it so the caller doesn't get blocked.
+
         // GetMessageA(null_mut(), null_mut(), 0, 0);
     }
     Ok(())
