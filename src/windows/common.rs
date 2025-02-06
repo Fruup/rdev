@@ -11,15 +11,17 @@ use winapi::shared::ntdef::LONG;
 use winapi::shared::windef::HHOOK;
 use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::winuser::{
-    SetWindowsHookExA, KBDLLHOOKSTRUCT, MSLLHOOKSTRUCT, WHEEL_DELTA, WH_KEYBOARD_LL, WH_MOUSE_LL,
-    WM_KEYDOWN, WM_KEYUP, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP,
-    WM_MOUSEHWHEEL, WM_MOUSEMOVE, WM_MOUSEWHEEL, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SYSKEYDOWN,
-    WM_SYSKEYUP, WM_XBUTTONDOWN, WM_XBUTTONUP,
+    SetWindowsHookExA, UnhookWindowsHookEx, KBDLLHOOKSTRUCT, MSLLHOOKSTRUCT, WHEEL_DELTA,
+    WH_KEYBOARD_LL, WH_MOUSE_LL, WM_KEYDOWN, WM_KEYUP, WM_LBUTTONDOWN, WM_LBUTTONUP,
+    WM_MBUTTONDOWN, WM_MBUTTONUP, WM_MOUSEHWHEEL, WM_MOUSEMOVE, WM_MOUSEWHEEL, WM_RBUTTONDOWN,
+    WM_RBUTTONUP, WM_SYSKEYDOWN, WM_SYSKEYUP, WM_XBUTTONDOWN, WM_XBUTTONUP,
 };
 pub const TRUE: i32 = 1;
 pub const FALSE: i32 = 0;
 
-pub static mut HOOK: HHOOK = null_mut();
+pub static mut MOUSE_HOOK: HHOOK = null_mut();
+pub static mut KEY_HOOK: HHOOK = null_mut();
+
 lazy_static! {
     pub(crate) static ref KEYBOARD: Mutex<Keyboard> = Mutex::new(Keyboard::new().unwrap());
 }
@@ -112,8 +114,21 @@ pub unsafe fn set_key_hook(callback: RawCallback) -> Result<(), HookError> {
         let error = GetLastError();
         return Err(HookError::Key(error));
     }
-    HOOK = hook;
+    KEY_HOOK = hook;
     Ok(())
+}
+
+pub unsafe fn remove_key_hook() -> Result<(), HookError> {
+    match UnhookWindowsHookEx(KEY_HOOK) {
+        FALSE => {
+            let error = GetLastError();
+            Err(HookError::Key(error))
+        }
+        _ => {
+            KEY_HOOK = null_mut();
+            Ok(())
+        }
+    }
 }
 
 pub unsafe fn set_mouse_hook(callback: RawCallback) -> Result<(), HookError> {
@@ -122,6 +137,19 @@ pub unsafe fn set_mouse_hook(callback: RawCallback) -> Result<(), HookError> {
         let error = GetLastError();
         return Err(HookError::Mouse(error));
     }
-    HOOK = hook;
+    MOUSE_HOOK = hook;
     Ok(())
+}
+
+pub unsafe fn remove_mouse_hook() -> Result<(), HookError> {
+    match UnhookWindowsHookEx(MOUSE_HOOK) {
+        FALSE => {
+            let error = GetLastError();
+            Err(HookError::Mouse(error))
+        }
+        _ => {
+            MOUSE_HOOK = null_mut();
+            Ok(())
+        }
+    }
 }
