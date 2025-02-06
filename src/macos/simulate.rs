@@ -68,6 +68,7 @@ unsafe fn convert_native_with_source(
             )
             .ok()
         }
+        _ => None,
     }
 }
 

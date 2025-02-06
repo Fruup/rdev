@@ -19,6 +19,8 @@ pub enum ListenError {
     EventTapError,
     /// MacOS
     LoopSourceError,
+    /// MacOS
+    EventTapDisabled,
     /// Linux
     MissingDisplayError,
     /// Linux
@@ -248,6 +250,8 @@ pub enum EventType {
         delta_x: i64,
         delta_y: i64,
     },
+    /// The event listener has been disabled by the OS or the user.
+    ListenerDisabled,
 }
 
 /// When events arrive from the OS they get some additional information added from

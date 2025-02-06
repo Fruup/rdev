@@ -72,12 +72,14 @@ extern "C" {
         order: CFIndex,
     ) -> CFRunLoopSourceRef;
     pub fn CFRunLoopAddSource(rl: CFRunLoopRef, source: CFRunLoopSourceRef, mode: CFRunLoopMode);
+    pub fn CFRunLoopRemoveSource(rl: CFRunLoopRef, source: CFRunLoopSourceRef, mode: CFRunLoopMode);
+    pub fn CFMachPortInvalidate(port: CFMachPortRef);
     pub fn CFRunLoopGetCurrent() -> CFRunLoopRef;
     pub fn CGEventTapEnable(tap: CFMachPortRef, enable: bool);
+    pub fn CGEventTapIsEnabled(tap: CFMachPortRef) -> bool;
     pub fn CFRunLoopRun();
 
     pub static kCFRunLoopCommonModes: CFRunLoopMode;
-
 }
 
 // TODO Remove this, this was added as the coded
@@ -135,6 +137,16 @@ pub unsafe fn convert(
                 cg_event.get_integer_value_field(EventField::SCROLL_WHEEL_EVENT_POINT_DELTA_AXIS_2);
             Some(EventType::Wheel { delta_x, delta_y })
         }
+        CGEventType::TapDisabledByTimeout | CGEventType::TapDisabledByUserInput => {
+            Some(EventType::ListenerDisabled)
+        }
+        CGEventType::LeftMouseDragged
+        | CGEventType::RightMouseDragged
+        | CGEventType::OtherMouseDragged
+        | CGEventType::TabletPointer
+        | CGEventType::TabletProximity
+        | CGEventType::OtherMouseDown
+        | CGEventType::OtherMouseUp => None,
         _ => None,
     };
     if let Some(event_type) = option_type {

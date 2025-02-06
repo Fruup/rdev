@@ -6,6 +6,7 @@ use cocoa::foundation::NSAutoreleasePool;
 use core_graphics::event::{CGEventTapLocation, CGEventType};
 use std::os::raw::c_void;
 
+// Currently, only one listener (one callback) is supported.
 static mut GLOBAL_CALLBACK: Option<Box<dyn FnMut(Event)>> = None;
 
 #[link(name = "Cocoa", kind = "framework")]
@@ -27,17 +28,18 @@ unsafe extern "C" fn raw_callback(
             }
         }
     }
-    // println!("Event ref END {:?}", cg_event_ptr);
-    // cg_event_ptr
     cg_event
 }
 
-pub fn listen<T>(callback: T) -> Result<(), ListenError>
+pub fn listen<T>(callback: T) -> Result<impl Fn(), ListenError>
 where
     T: FnMut(Event) + 'static,
 {
     unsafe {
-        GLOBAL_CALLBACK = Some(Box::new(callback));
+        if let None = GLOBAL_CALLBACK {
+            GLOBAL_CALLBACK = Some(Box::new(callback));
+        }
+
         let _pool = NSAutoreleasePool::new(nil);
         let tap = CGEventTapCreate(
             CGEventTapLocation::HID, // HID, Session, AnnotatedSession,
@@ -59,7 +61,20 @@ where
         CFRunLoopAddSource(current_loop, _loop, kCFRunLoopCommonModes);
 
         CGEventTapEnable(tap, true);
+
+        if !CGEventTapIsEnabled(tap) {
+            return Err(ListenError::EventTapDisabled);
+        }
+
         CFRunLoopRun();
+
+        let stop_fn = move || {
+            CFMachPortInvalidate(tap);
+            CFRunLoopRemoveSource(current_loop, _loop, kCFRunLoopCommonModes);
+
+            GLOBAL_CALLBACK = None;
+        };
+
+        Ok(stop_fn)
     }
-    Ok(())
 }
