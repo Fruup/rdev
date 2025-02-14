@@ -66,8 +66,6 @@ where
             return Err(ListenError::EventTapDisabled);
         }
 
-        CFRunLoopRun();
-
         let stop_fn = move || {
             CFMachPortInvalidate(tap);
             CFRunLoopRemoveSource(current_loop, _loop, kCFRunLoopCommonModes);
